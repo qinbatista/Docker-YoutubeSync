@@ -12,7 +12,7 @@ jobs:
         run: docker build -t qinbatista/download .
 
       - name: Build and Push
-      - uses: mr-smithers-excellent/docker-build-push@v5
+        uses: mr-smithers-excellent/docker-build-push@v5
         with:
           image: qinbatista/download
           registry: docker.io
