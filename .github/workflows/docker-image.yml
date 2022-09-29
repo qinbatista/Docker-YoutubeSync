@@ -9,7 +9,7 @@ jobs:
     environment: ubuntu
     steps:
       - name: Build the Docker image
-        run: docker build -t qinbatista/download
+        run: docker build -t qinbatista/download ./../
 
       - name: Build and Push
         uses: mr-smithers-excellent/docker-build-push@v5
