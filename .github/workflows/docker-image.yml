@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ubuntu
     steps:
-      - name: Build the Docker image
-      - uses: actions/checkout@v3
-        run: docker build -t qinbatista/download .
+    - name: Build the Docker image
+    - uses: actions/checkout@v3
+      run: docker build -t qinbatista/download .
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@v2
       # - name: Set up Docker Buildx
