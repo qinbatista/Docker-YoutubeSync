@@ -45,5 +45,6 @@ RUN mv ./aria2.conf ~/.aria2/aria2.conf
 RUN ls
 VOLUME [ "/download"]
 WORKDIR /
+
 EXPOSE 10005
 CMD ["python3","/tcp_dl_server.py"]
