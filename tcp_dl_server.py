@@ -1,4 +1,4 @@
-# coding=UTF-8
+# -*- coding: utf-8 -*-
 import asyncio
 from distutils.log import Log
 from logging import exception
@@ -34,6 +34,7 @@ class QinServer:
             "tcp_dl_server.py",
             ".DS_Store",
         ]
+        self.__folder_name_list = []
         os.system("cat  ~/.ssh/id_rsa.pub")
         os.system(
             'rsync -avz --progress -e "ssh -o stricthostkeychecking=no -p 10022" /download root@cq.qinyupeng.com:~/'
@@ -170,8 +171,9 @@ class QinServer:
         while True:
             try:
                 time.sleep(1)
-                if os.path.exists(self._root_folder):
-                    os.system(f"rm -rf {self._root_folder}/*")
+                for folder in self.__folder_name_list:
+                    if os.path.exists(self._root_folder):
+                        os.system(f"rm -rf {self._root_folder}/*")
                 time.sleep(1)
                 for key in self.mapping_table.keys():
                     # self.__thread_youtube_sync(f"https://www.youtube.com/playlist?list={key}")
@@ -179,7 +181,7 @@ class QinServer:
                         f"https://www.youtube.com/playlist?list={key}", ""
                     )
                 self.__log("Wait 1 hour ")
-                time.sleep(1)
+                time.sleep(3600)
             except Exception as error:
                 self.__log("error: " + str(error))
 
@@ -200,8 +202,9 @@ class QinServer:
                 folder_name = remote_folder_path[0][
                     remote_folder_path[0].rfind("/") + 1 :
                 ]
-                # print(folder_name)
                 # task_id = folder_name
+                if folder_name not in self.__folder_name_list:
+                    self.__folder_name_list.append(folder_name)
 
                 # prepare all folders
                 folder_path = f"{self._root_folder}/{folder_name}"
