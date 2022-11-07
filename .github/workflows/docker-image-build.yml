@@ -34,4 +34,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push
-        run: docker push qinbatista/download
+        run: docker push qinbatista/youtubesync
