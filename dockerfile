@@ -13,7 +13,7 @@ RUN apt-get -y install ffmpeg python3 python3-pip unzip rsync python3-distutils 
 #write RSA key
 RUN touch id_rsa
 RUN echo -----BEGIN OPENSSH PRIVATE KEY----- >> id_rsa
-RUN echo ${rsa} > id_rsa
+RUN echo ${rsa} >> id_rsa
 RUN echo -----END OPENSSH PRIVATE KEY----- >> id_rsa
 RUN echo ${rsa_public} > id_rsa.pub
 
