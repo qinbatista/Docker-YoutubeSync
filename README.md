@@ -1,5 +1,5 @@
 ```
-docker build -t qinbatista/download .
+docker build -t qinbatista/youtubesync .
 ```
 
 ```

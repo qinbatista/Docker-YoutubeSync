@@ -39,7 +39,7 @@ class QinServer:
             self.__file_path = "/download/logs.txt"
         os.system("git clone git@github.com:qinbatista/Config_YoutubeList.git")
         config_file = open("./Config_YoutubeList/config.json")
-        self.__cookie_file = "./Config_YoutubeList/youtube_cookies.txt"
+        self.__cookie_file = "/Config_YoutubeList/youtube_cookies.txt"
         self.mapping_table = json.load(config_file)
         self._storage_server_ip = "cq.qinyupeng.com"
         self._storage_server_port = 10022
