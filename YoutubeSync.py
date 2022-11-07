@@ -204,7 +204,7 @@ class QinServer:
                             )
                         self.__s3_manager._sync_folder(folder_path,folder_name)
                         name_list = (
-                            f'rsync -avz -I --include="*.mp4" --progress -e "ssh -p {self._storage_server_port}" {folder_path}/ root@{self._storage_server_ip}:/Video/',
+                            f'rsync -avz -I --include="*.mp4" --progress -e "ssh -p {self._storage_server_port}" {folder_path}/ root@{self._storage_server_ip}:/Video/{folder_name}',
                         )
                         p = subprocess.Popen(
                             name_list,
