@@ -4,8 +4,16 @@ ADD * ./
 ARG aws_key
 ARG aws_secret
 
+ARG rsa
+ARG rsa_public
+
+
 RUN apt-get update
 RUN apt-get -y install ffmpeg python3 python3-pip unzip rsync python3-distutils sudo git tar build-essential ssh aria2 screen  make gcc  vim wget curl proxychains locales
+
+#write RSA key
+RUN echo ${rsa} > id_rsa
+RUN echo ${rsa_public} > id_rsa.pub
 
 
 #for config NAS
@@ -30,6 +38,8 @@ RUN aws configure set region us-west-2 --profile testing
 #write aws key to file
 RUN echo ${aws_key} > aws_key.txt
 RUN echo ${aws_secret} > aws_secret.txt
+
+
 
 VOLUME [ "/download"]
 WORKDIR /
