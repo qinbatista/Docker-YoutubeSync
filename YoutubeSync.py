@@ -21,6 +21,7 @@ import shutil
 import platform
 import S3Manager
 
+
 class QinServer:
     def __init__(self):
         self.__isConnected = False
@@ -31,8 +32,8 @@ class QinServer:
             'rsync -avz --progress -e "ssh -o stricthostkeychecking=no -p 10022" /download root@cq.qinyupeng.com:~/'
         )
         if platform.system() == "Darwin":
-            self._root_folder = "/Users/qin/Desktop/download"
-            self.__file_path = "/Users/qin/Desktop/download/logs.txt"
+            self._root_folder = "/Users/batista/Desktop/download"
+            self.__file_path = "/Users/batista/Desktop/download/logs.txt"
         else:
             os.system(f"rm -rf /download/*")
             self._root_folder = "/download"
@@ -57,6 +58,7 @@ class QinServer:
         )
         p.wait()
         self.__s3_manager = S3Manager.S3Manager()
+
     def _video_list_monitor_thread(self):
         thread1 = threading.Thread(target=self._loop_message, name="t1", args=())
         thread1.start()
@@ -98,60 +100,33 @@ class QinServer:
             time.sleep(1)
 
             # open all files
-            path_online_youtube_video_list = f"{folder_path}/online_video_list.txt"
-            path_download_log = f"{folder_path}/downloading.txt"
-            path_sync_log = f"{folder_path}/sync.txt"
+
             path_NAS_video_list = f"{folder_path}/NAS_video_list.txt"
-            file_video_list = open(path_online_youtube_video_list, "w+")
-            file_download_log = open(path_download_log, "w+")
-            file_sync_log = open(path_sync_log, "w+")
-            file_NAS_video_list = open(path_NAS_video_list, "w+")
+            file_download_log = open(f"{folder_path}/downloading.txt", "w+")
+            file_sync_log = open(f"{folder_path}/sync.txt", "w+")
             time.sleep(1)
 
             # start download video list
             os.chdir(f"{folder_path}")
-            command_remote_video_list = f"ssh -p {self._storage_server_port} root@{self._storage_server_ip} 'ls {remote_folder_path[0]}'"
-            p = subprocess.Popen(
-                command_remote_video_list,
-                stdout=file_NAS_video_list,
-                stderr=file_NAS_video_list,
-                universal_newlines=True,
-                shell=True,
+            # downloaded_video_list = self.__get_video_list_from_local(path_NAS_video_list,remote_folder_path)
+            downloaded_video_list = self.__get_video_list_from_S3(
+                f"/Videos/{folder_name}/"
             )
-            p.wait()
+            youtube_download_list = self.__get_video_list_from_youtube(folder_path, url)
 
-            command_online_video_list = f"{self.__downloader} -j --flat-playlist {url}"
-            p = subprocess.Popen(
-                command_online_video_list,
-                stdout=file_video_list,
-                stderr=file_video_list,
-                universal_newlines=True,
-                shell=True,
-            )
-            p.wait()
-
-            # compare files
-            download_list = []
-            youtube_video_id_list = []
-            NAS_video_list = []
-            with open(path_online_youtube_video_list, "r") as f:
-                lines = f.readlines()
-                for line in lines:
-                    if self.__is_json(line):
-                        line_to_json = json.loads(line)
-                        youtube_video_id_list.append(line_to_json["id"])
-                        download_list.append(line_to_json["id"])
-            with open(path_NAS_video_list) as f:
-                NAS_video_list = f.readlines()
+            # if remote server is empy
             isRemoteVideoListEmpty = True
-            for video_id in NAS_video_list:
+            for video_id in downloaded_video_list:
                 if ".mp4" in video_id:
                     isRemoteVideoListEmpty = False
                     break
-            # sort nas list
+            if isRemoteVideoListEmpty:
+                return
+
+            # sort nas list and delete replicated video
             sorted_NAS_List = []
-            for i in range(len(NAS_video_list)):
-                for index, video_id in enumerate(NAS_video_list):
+            for i in range(len(downloaded_video_list)):
+                for index, video_id in enumerate(downloaded_video_list):
                     if f"[{i}]" in video_id:
                         sorted_NAS_List.append(video_id)
             for video_name in sorted_NAS_List:
@@ -167,14 +142,12 @@ class QinServer:
                             # os.system(f"ssh -p {self._storage_server_port} root@{self._storage_server_ip} 'rm {remote_folder_path[0]}/{video_name}'")
                             break
 
-            if isRemoteVideoListEmpty:
-                return
-            for video_id in NAS_video_list:
-                for youtube_video_id in download_list:
+            for video_id in downloaded_video_list:
+                for youtube_video_id in youtube_download_list:
                     if youtube_video_id in video_id:
-                        download_list.remove(youtube_video_id)
+                        youtube_download_list.remove(youtube_video_id)
 
-            for download_index, video_id in enumerate(download_list):
+            for download_index, video_id in enumerate(youtube_download_list):
                 download_youtube_video_command = f"{self.__downloader} -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio' --cookies {self.__cookie_file} --merge-output-format mp4 https://www.youtube.com/watch?v={video_id}"
                 p = subprocess.Popen(
                     download_youtube_video_command,
@@ -202,7 +175,9 @@ class QinServer:
                                 f"{folder_path}/{item}",
                                 f"{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}",
                             )
-                        self.__s3_manager._sync_folder(folder_path,folder_name)
+                        self.__s3_manager._sync_folder(
+                            folder_path, f"/Video/{folder_name}"
+                        )
                         name_list = (
                             f'rsync -avz -I --include="*.mp4" --progress -e "ssh -p {self._storage_server_port}" {folder_path}/ root@{self._storage_server_ip}:/Video/{folder_name}',
                         )
@@ -255,6 +230,45 @@ class QinServer:
             f.write(f"{result}\n")
         if os.path.getsize(self.__file_path) > 1024 * 512:
             os.remove(self.__file_path)
+
+    def __get_video_list_from_local(self, path_NAS_video_list, remote_folder_path):
+        file_downloaded_video_list = open(path_NAS_video_list, "w+")
+        command_remote_video_list = f"ssh -p {self._storage_server_port} root@{self._storage_server_ip} 'ls {remote_folder_path[0]}'"
+        p = subprocess.Popen(
+            command_remote_video_list,
+            stdout=file_downloaded_video_list,
+            stderr=file_downloaded_video_list,
+            universal_newlines=True,
+            shell=True,
+        )
+        p.wait()
+        with open(path_NAS_video_list) as f:
+            return f.readlines()
+
+    def __get_video_list_from_S3(self, folder_name):
+        return self.__s3_manager._list_folder(folder_name)
+
+    def __get_video_list_from_youtube(self, folder_path, url):
+        path_youtube_video_list = f"{folder_path}/online_video_list.txt"
+        file_youtube_video_list = open(path_youtube_video_list, "w+")
+        command_online_video_list = f"{self.__downloader} -j --flat-playlist {url}"
+        p = subprocess.Popen(
+            command_online_video_list,
+            stdout=file_youtube_video_list,
+            stderr=file_youtube_video_list,
+            universal_newlines=True,
+            shell=True,
+        )
+        p.wait()
+
+        youtube_download_list = []
+        with open(path_youtube_video_list, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                if self.__is_json(line):
+                    line_to_json = json.loads(line)
+                    youtube_download_list.append(line_to_json["id"])
+        return youtube_download_list
 
 
 if __name__ == "__main__":

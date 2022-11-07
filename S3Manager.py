@@ -9,17 +9,18 @@ import platform
 class S3Manager:
     def __init__(self):
         if platform.system() == "Darwin":
-            self.__file_path = "/Users/qin/Desktop/logs.txt"
+            self.__file_path = "/Users/batista/Desktop/logs.txt"
             self.__fn_stdout = (
-                f"/Users/qin/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json"
+                f"/Users/batista/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json"
             )
             self.__fn_tderr = (
-                f"/Users/qin/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json"
+                f"/Users/batista/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json"
             )
         else:
             self.__file_path = "/root/logs.txt"
             self.__fn_stdout = f"./_get_static_ip_stdout{uuid.uuid4()}.json"
             self.__fn_tderr = f"./_get_static_ip_stderr{uuid.uuid4()}.json"
+        self.__s3_bucket = "s3://qinyupeng.com"
 
     def __log(self, result):
         if os.path.isfile(self.__file_path) == False:
@@ -58,11 +59,24 @@ class S3Manager:
         self.__log(aws_result)
         return aws_result
 
-    def _sync_folder(self, source, _folder_name):
-        cli_command = f'aws s3 cp {source} s3://qinyupeng.com/Videos/{_folder_name} --recursive --storage-class DEEP_ARCHIVE --exclude "*" --include "*.mp4"'
+    def _list_folder(self, _folder_name):
+        cli_command = f'aws s3 ls {self.__s3_bucket}{_folder_name}'
         result = self.__exec_aws_command(cli_command)
         try:
-            if "upload" in result:  # type: ignore
+            if len(result) > 0:
+                self.__log(f"[_sync_folder] success")
+                return result
+            else:
+                return False
+        except Exception as e:
+            self.__log(f"[_sync_folder] failed:" + str(e))
+            return False
+
+    def _sync_folder(self, source, _folder_name):
+        cli_command = f'aws s3 cp {source} {self.__s3_bucket}{_folder_name} --recursive --storage-class DEEP_ARCHIVE --exclude "*" --include "*.mp4"'
+        result = self.__exec_aws_command(cli_command)
+        try:
+            if "upload" in result[len(result) - 1]:  # type: ignore
                 self.__log(f"[_sync_folder] success")
                 return True
         except Exception as e:
@@ -72,4 +86,5 @@ class S3Manager:
 
 if __name__ == "__main__":
     ss = S3Manager()
-    ss._sync_folder("/Users/qin/Desktop/download/文昭思绪飞扬", "/文昭思绪飞扬")
+    # ss._sync_folder("/Users/batista/Desktop/文昭思绪飞扬", "/Videos/文昭思绪飞扬")
+    ss._list_folder("/Videos/文昭思绪飞扬/")
