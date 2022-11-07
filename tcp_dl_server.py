@@ -77,87 +77,6 @@ class QinServer:
         )
         p.wait()
 
-    def start_server(self):
-        SERVER_ADDRESS = (self._host, self._port)
-        event_loop = asyncio.get_event_loop()
-        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_context.check_hostname = False
-        ssl_context.load_cert_chain(self._crt, self._key, password=self._password)
-        factory = asyncio.start_server(self.__echo, *SERVER_ADDRESS, ssl=ssl_context)
-        server = event_loop.run_until_complete(factory)
-        # print('starting up on {} port {}'.format(*SERVER_ADDRESS))
-        try:
-            event_loop.run_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            server.close()
-            event_loop.run_until_complete(server.wait_closed())
-            # print('closing event loop')
-            event_loop.close()
-
-    def __thread_download(self, command):
-        thread1 = threading.Thread(target=self.__command, name="t1", args=(command, ""))
-        thread1.start()
-
-    def __command(self, command, args):
-        # and then check the response...
-        if self.__isServerOpening(self._storage_server_ip, self._storage_server_port):
-            # print("Chongqing server is opening")
-            # download files
-            os.chdir("/")
-            if not os.path.exists(self._root_folder):
-                os.makedirs(self._root_folder)
-            if not os.path.exists(self._cache_folder):
-                os.makedirs(self._cache_folder)
-
-            def current_milli_time():
-                return int(round(time.time() * 1000))
-
-            task_id = str(current_milli_time())
-            os.mkdir(f"{self._root_folder}/{task_id}")
-            if os.path.exists(f"{self._root_folder}/{task_id}"):
-                os.chdir(f"{self._root_folder}/{task_id}")
-            # print("command:"+command)
-            path_to_output_file_downloading = (
-                f"{self._root_folder}/{task_id}/downloading_log.txt"
-            )
-            path_to_output_file_syncing = f"{self._root_folder}/{task_id}/sync_log.txt"
-            myoutput_downloading = open(path_to_output_file_downloading, "w+")
-            myoutput_syncing = open(path_to_output_file_syncing, "w+")
-            p = subprocess.Popen(
-                command,
-                stdout=myoutput_downloading,
-                stderr=myoutput_downloading,
-                universal_newlines=True,
-                shell=True,
-            )
-            p.wait()
-            # print("downloaded all files, start sync files")
-
-            p = subprocess.Popen(
-                f'rsync -avz --progress -e "ssh -p {self._storage_server_port}" {self._root_folder}/{task_id} root@{self._storage_server_ip}:{self._root_folder}/ --delete',
-                stdout=myoutput_syncing,
-                stderr=myoutput_syncing,
-                universal_newlines=True,
-                shell=True,
-            )
-            p.wait()
-            # print("synced files, start delete cache")
-            if not os.path.exists(f"{self._cache_folder}/{task_id}"):
-                os.makedirs(f"{self._cache_folder}/{task_id}")
-            os.system(
-                f"mv {self._root_folder}/{task_id}/downloading_log.txt {self._cache_folder}/{task_id}"
-            )
-            os.system(
-                f"mv {self._root_folder}/{task_id}/sync_log.txt {self._cache_folder}/{task_id}"
-            )
-            os.system(f"rm -rf {self._root_folder}/{task_id}")
-            print("deleted cache, done")
-        else:
-            print("Chongqing server is closed")
-            os.system(f"rm -rf {self._root_folder}/*")
-
     def _video_list_monitor_thread(self):
         thread1 = threading.Thread(target=self._loop_message, name="t1", args=())
         thread1.start()
@@ -176,7 +95,6 @@ class QinServer:
                         os.system(f"rm -rf {self._root_folder}/*")
                 time.sleep(1)
                 for key in self.mapping_table.keys():
-                    # self.__thread_youtube_sync(f"https://www.youtube.com/playlist?list={key}")
                     self._youtube_sync_command(
                         f"https://www.youtube.com/playlist?list={key}", ""
                     )
@@ -184,12 +102,6 @@ class QinServer:
                 time.sleep(3600)
             except Exception as error:
                 self.__log("error: " + str(error))
-
-    def __thread_youtube_sync(self, url):
-        thread1 = threading.Thread(
-            target=self._youtube_sync_command, name="t1", args=(url, "")
-        )
-        thread1.start()
 
     def _youtube_sync_command(self, url, args):
         try:
@@ -342,9 +254,6 @@ class QinServer:
         except Exception as error:
             self.__log("error: " + str(error))
 
-    def __parse_message(self, msg):
-        my_json = json.loads(msg)
-        return my_json["message"], my_json["type"], my_json["proxy"]
 
     def __is_json(self, myjson):
         try:
@@ -390,39 +299,10 @@ class QinServer:
         )
         await writer.drain()
 
-    async def __mission_manager(self, message, type, proxy):
-        p = subprocess.Popen(
-            "python3 -m pip install --upgrade pip", universal_newlines=True, shell=True
-        )
-        p.wait()
-        p = subprocess.Popen(
-            "pip3 install " + self._tool_package + " --upgrade",
-            universal_newlines=True,
-            shell=True,
-        )
-        p.wait()
-        if proxy != "":
-            proxy = "proxychains"
-        if type == self._tool_package:
-            self.__thread_download(
-                f"{proxy} {type} -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio' --merge-output-format mp4 {message}"
-            )
-        elif type == "wget":
-            self.__thread_download(f"{proxy} {type} {message}")
-        elif type == "instagram-scraper":
-            self.__thread_download(f"{proxy} {type} {message}")
-        elif type == "aria2c":
-            self.__thread_download(f"{proxy} {type} {message}")
-        elif type == "command":
-            self.__thread_download(f"{proxy} {message}")
-        elif type == "youtube":
-            self.__thread_download(f"{proxy} {message}")
-        elif type == "sync_youtube":
-            self.__thread_youtube_sync(f"{proxy} {message}")
+
 
 
 if __name__ == "__main__":
 
     qs = QinServer()
     qs._video_list_monitor_thread()
-    # qs.start_server()
