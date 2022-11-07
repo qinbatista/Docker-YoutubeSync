@@ -7,7 +7,6 @@ ARG aws_secret
 ARG rsa
 ARG rsa_public
 
-
 RUN apt-get update
 RUN apt-get -y install ffmpeg python3 python3-pip unzip rsync python3-distutils sudo git tar build-essential ssh aria2 screen  make gcc  vim wget curl proxychains locales
 
