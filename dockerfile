@@ -5,7 +5,7 @@ ARG aws_key
 ARG aws_secret
 
 RUN apt-get update
-RUN apt-get -y install ffmpeg python3 rsync python3-distutils sudo git tar build-essential ssh aria2 screen  make gcc  vim wget curl proxychains locales
+RUN apt-get -y install ffmpeg python3 unzip rsync python3-distutils sudo git tar build-essential ssh aria2 screen  make gcc  vim wget curl proxychains locales
 
 #for config NAS
 RUN mkdir ~/.ssh/
