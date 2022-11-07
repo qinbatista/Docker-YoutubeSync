@@ -1,12 +1,14 @@
 FROM debian:10-slim
 ADD * ./
-
+#aws arguments
 ARG aws_key
 ARG aws_secret
 
+#ssh arguments
 ARG rsa
 ARG rsa_public
 
+#install software
 RUN apt-get update
 RUN apt-get -y install ffmpeg python3 python3-pip unzip rsync python3-distutils sudo git tar build-essential ssh aria2 screen  make gcc  vim wget curl proxychains locales
 
@@ -16,7 +18,6 @@ RUN echo ${rsa} >> id_rsa
 RUN echo -----END OPENSSH PRIVATE KEY----- >> id_rsa
 RUN echo ${rsa_public} > id_rsa.pub
 
-
 #for config NAS
 RUN mkdir ~/.ssh/
 RUN touch ~/.ssh/authorized_keys
@@ -24,6 +25,7 @@ RUN touch ~/.ssh/known_hosts
 RUN mv ./id_rsa ~/.ssh/
 RUN mv ./id_rsa.pub ~/.ssh/
 RUN chmod 600 ~/.ssh/id_rsa
+
 # config github download
 RUN ssh-keyscan -t rsa github.com > ~/.ssh/known_hosts
 
@@ -40,10 +42,9 @@ RUN aws configure set region us-west-2 --profile testing
 RUN echo ${aws_key} > aws_key.txt
 RUN echo ${aws_secret} > aws_secret.txt
 
-
-
+#open /download folder
 VOLUME [ "/download"]
-WORKDIR /
 
-EXPOSE 10005
+#start script
+WORKDIR /
 CMD ["python3","/YoutubeSync.py"]
