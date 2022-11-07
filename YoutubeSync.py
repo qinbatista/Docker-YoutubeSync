@@ -258,6 +258,6 @@ class QinServer:
 
 
 if __name__ == "__main__":
-
+    print("v1")
     qs = QinServer()
     qs._video_list_monitor_thread()
