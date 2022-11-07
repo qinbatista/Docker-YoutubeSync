@@ -5,6 +5,7 @@ import os
 import json
 import platform
 
+
 class S3Manager:
     def __init__(self):
         if platform.system() == "Darwin":
@@ -19,9 +20,7 @@ class S3Manager:
             self.__file_path = "/root/logs.txt"
             self.__fn_stdout = f"./_get_static_ip_stdout{uuid.uuid4()}.json"
             self.__fn_tderr = f"./_get_static_ip_stderr{uuid.uuid4()}.json"
-        self.__cluster = "arn:aws:ecs:us-west-2:825807444916:cluster/SSRCluster"
-        self.__service = "arn:aws:ecs:us-west-2:825807444916:service/SSRCluster/SSR-Service"
-        self.__task_definition = "SSRFargate"
+
     def __log(self, result):
         if os.path.isfile(self.__file_path) == False:
             return
@@ -59,8 +58,8 @@ class S3Manager:
         self.__log(aws_result)
         return aws_result
 
-    def _sync_folder(self,source, _folder_name):
-        cli_command = f'aws s3 cp {source} s3://qinyupeng.com/Videos/{_folder_name} --recursive --exclude "*" --include "*.mp4"'
+    def _sync_folder(self, source, _folder_name):
+        cli_command = f'aws s3 cp {source} s3://qinyupeng.com/Videos/{_folder_name} --recursive --storage-class DEEP_ARCHIVE --exclude "*" --include "*.mp4"'
         result = self.__exec_aws_command(cli_command)
         try:
             if "upload" in result:  # type: ignore
@@ -71,7 +70,6 @@ class S3Manager:
             return False
 
 
-
 if __name__ == "__main__":
     ss = S3Manager()
-    ss._sync_folder("/Users/qin/Desktop/download/文昭思绪飞扬","/文昭思绪飞扬")
+    ss._sync_folder("/Users/qin/Desktop/download/文昭思绪飞扬", "/文昭思绪飞扬")
