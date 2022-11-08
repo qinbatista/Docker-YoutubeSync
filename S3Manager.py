@@ -9,12 +9,12 @@ import platform
 class S3Manager:
     def __init__(self):
         if platform.system() == "Darwin":
-            self.__file_path = "/Users/batista/Desktop/logs.txt"
+            self.__file_path = "/Users/qin/Desktop/logs.txt"
             self.__fn_stdout = (
-                f"/Users/batista/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json"
+                f"/Users/qin/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json"
             )
             self.__fn_tderr = (
-                f"/Users/batista/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json"
+                f"/Users/qin/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json"
             )
         else:
             self.__file_path = "/root/logs.txt"
@@ -32,7 +32,7 @@ class S3Manager:
                 content = f.readlines()
                 os.remove(self.__file_path)
 
-    def __exec_aws_command(self, command):
+    def __exec_aws_command(self, command)->list:
         self.__get_static_ip_stdout = open(self.__fn_stdout, "w+")
         self.__get_static_ip_stderr = open(self.__fn_tderr, "w+")
         process = subprocess.Popen(
@@ -44,14 +44,14 @@ class S3Manager:
         )
         process.wait()
 
-        aws_result = ""
+        aws_result = []
         filesize = os.path.getsize(self.__fn_tderr)
         if filesize == 0:
             with open(self.__fn_stdout) as json_file:
                 aws_result = json_file.readlines()
         else:
             with open(self.__fn_tderr) as json_file:
-                aws_result = json_file.read()
+                aws_result[0] = json_file.read()
         # clean cache files
         os.remove(self.__fn_stdout)
         os.remove(self.__fn_tderr)
@@ -59,7 +59,7 @@ class S3Manager:
         self.__log(aws_result)
         return aws_result
 
-    def _list_folder(self, _folder_name):
+    def _list_folder(self, _folder_name)->list:
         cli_command = f'aws s3 ls {self.__s3_bucket}{_folder_name}'
         result = self.__exec_aws_command(cli_command)
         try:
@@ -67,10 +67,10 @@ class S3Manager:
                 self.__log(f"[_sync_folder] success")
                 return result
             else:
-                return False
+                return []
         except Exception as e:
             self.__log(f"[_sync_folder] failed:" + str(e))
-            return False
+            return []
 
     def _sync_folder(self, source, _folder_name):
         cli_command = f'aws s3 cp {source} {self.__s3_bucket}{_folder_name} --recursive --storage-class DEEP_ARCHIVE --exclude "*" --include "*.mp4"'
