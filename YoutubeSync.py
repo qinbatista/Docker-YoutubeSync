@@ -141,11 +141,12 @@ class QinServer:
                             sorted_NAS_List.remove(video_name)
                             # os.system(f"ssh -p {self._storage_server_port} root@{self._storage_server_ip} 'rm {remote_folder_path[0]}/{video_name}'")
                             break
-
+            loop_list = youtube_download_list.copy()
             for video_id in downloaded_video_list:
-                for youtube_video_id in youtube_download_list:
+                for youtube_video_id in loop_list:
                     if youtube_video_id in video_id:
-                        youtube_download_list.remove(youtube_video_id)
+                        # del youtube_download_list[youtube_video_id]
+                        youtube_download_list.pop(youtube_video_id)
 
             for download_index, video_id in enumerate(youtube_download_list):
                 download_youtube_video_command = f"{self.__downloader} -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio' --cookies {self.__cookie_file} --merge-output-format mp4 https://www.youtube.com/watch?v={video_id}"
@@ -169,14 +170,13 @@ class QinServer:
                                 find_video_in_NAS = True
                         if find_video_in_NAS:
                             return
-                        file_name = f"{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}"
                         if os.path.exists(f"{folder_path}/{item}"):
                             os.rename(
                                 f"{folder_path}/{item}",
-                                f"{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}",
+                                f"{folder_path}/[{youtube_download_list[video_id]}]{item}",
                             )
                         self.__s3_manager._sync_folder(
-                            folder_path, f"/Video/{folder_name}"
+                            folder_path, f"/Videos/{folder_name}"
                         )
                         name_list = (
                             f'rsync -avz -I --include="*.mp4" --progress -e "ssh -p {self._storage_server_port}" {folder_path}/ root@{self._storage_server_ip}:/Video/{folder_name}',
@@ -261,17 +261,23 @@ class QinServer:
         )
         p.wait()
 
-        youtube_download_list = []
+        youtube_index = {}
         with open(path_youtube_video_list, "r") as f:
             lines = f.readlines()
             for line in lines:
                 if self.__is_json(line):
                     line_to_json = json.loads(line)
-                    youtube_download_list.append(line_to_json["id"])
-        return youtube_download_list
+                    youtube_index.update({line_to_json["id"]:line_to_json["playlist_count"]-line_to_json["playlist_index"]+1})
+        return youtube_index
 
 
 if __name__ == "__main__":
+    youtube_index = {}
+    youtube_index.update({"1":1})
+    youtube_index.update({"2":1})
+    youtube_index.update({"3":1})
+    youtube_index.pop("1")
+    youtube_index.pop("3")
     print("v1")
     qs = QinServer()
     qs._video_list_monitor_thread()
