@@ -101,12 +101,14 @@ class QinServer:
 
             # start download video list
             os.chdir(f"{folder_path}")
-            # downloaded_video_list = self.__get_video_list_from_local(f"{folder_path}/NAS_video_list.txt",remote_folder_path)
-            downloaded_video_list = self.__get_video_list_from_S3(
-                f"/Videos/{folder_name}/"
-            )
-            youtube_download_list = self.__get_video_list_from_youtube(folder_path, url)
+            downloaded_video_list = {}
+            downloaded_video_list_local = self.__get_video_list_from_local(f"{folder_path}/NAS_video_list.txt",remote_folder_path)
+            downloaded_video_list_s3 = self.__get_video_list_from_S3(f"/Videos/{folder_name}/")
 
+            downloaded_video_list_1 = set(downloaded_video_list_s3) - set(downloaded_video_list_local)
+            downloaded_video_list_2 = set(downloaded_video_list_local) - set(downloaded_video_list_s3)
+            downloaded_video_list = downloaded_video_list_1 | downloaded_video_list_2
+            youtube_download_list = self.__get_video_list_from_youtube(folder_path, url)
             # if remote server is empy
             isRemoteVideoListEmpty = True
             for video_id in downloaded_video_list:
