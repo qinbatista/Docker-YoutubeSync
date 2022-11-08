@@ -29,11 +29,11 @@ class QinServer:
             os.system(f"rm -rf /download/*")
             self._root_folder = "/download"
             self.__file_path = "/download/youtubesynclogs.txt"
+        os.chdir(self._root_folder)
         os.system("git clone git@github.com:qinbatista/Config_YoutubeList.git")
-        os.system("ls")
-        config_file = open("Config_YoutubeList/config.json")
-        self.__cookie_file = "/Config_YoutubeList/youtube_cookies.txt"
-        self.mapping_table = json.load(config_file)
+        with open(f"{self._root_folder}/Config_YoutubeList/config.json") as f:
+            self.mapping_table = json.load(f)
+        self.__cookie_file = f"{self._root_folder}/Config_YoutubeList/youtube_cookies.txt"
         self._storage_server_ip = "cq.qinyupeng.com"
         self._storage_server_port = 10022
         if not os.path.exists(self._root_folder):
