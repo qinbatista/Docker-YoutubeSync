@@ -99,16 +99,9 @@ class QinServer:
                 os.system(f"rm {folder_path}/*.mp4.part")
             time.sleep(1)
 
-            # open all files
-
-            path_NAS_video_list = f"{folder_path}/NAS_video_list.txt"
-            file_download_log = open(f"{folder_path}/downloading.txt", "w+")
-            file_sync_log = open(f"{folder_path}/sync.txt", "w+")
-            time.sleep(1)
-
             # start download video list
             os.chdir(f"{folder_path}")
-            # downloaded_video_list = self.__get_video_list_from_local(path_NAS_video_list,remote_folder_path)
+            # downloaded_video_list = self.__get_video_list_from_local(f"{folder_path}/NAS_video_list.txt",remote_folder_path)
             downloaded_video_list = self.__get_video_list_from_S3(
                 f"/Videos/{folder_name}/"
             )
@@ -149,6 +142,7 @@ class QinServer:
                         youtube_download_list.pop(youtube_video_id)
 
             for download_index, video_id in enumerate(youtube_download_list):
+                file_download_log = open(f"{folder_path}/downloading.txt", "w+")
                 download_youtube_video_command = f"{self.__downloader} -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio' --cookies {self.__cookie_file} --merge-output-format mp4 https://www.youtube.com/watch?v={video_id}"
                 p = subprocess.Popen(
                     download_youtube_video_command,
@@ -160,8 +154,6 @@ class QinServer:
                 p.wait()
 
                 cache_video = os.listdir(folder_path)
-                # for index, i in enumerate(range(len(string_list))):
-                # destination_folder = string_list[index].replace(task_id, "")
                 find_video_in_NAS = False
                 for item in cache_video:
                     if item.endswith(".mp4"):
@@ -181,6 +173,7 @@ class QinServer:
                         name_list = (
                             f'rsync -avz -I --include="*.mp4" --progress -e "ssh -p {self._storage_server_port}" {folder_path}/ root@{self._storage_server_ip}:/Video/{folder_name}',
                         )
+                        file_sync_log = open(f"{folder_path}/sync.txt", "w+")
                         p = subprocess.Popen(
                             name_list,
                             stdout=file_sync_log,
@@ -192,13 +185,13 @@ class QinServer:
 
                         time.sleep(1)
                         if os.path.exists(
-                            f"{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}"
+                            f"{folder_path}/[{youtube_download_list[video_id]}]{item}"
                         ):
                             os.remove(
-                                f"{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}"
+                                f"{folder_path}/[{youtube_download_list[video_id]}]{item}"
                             )
                         self.__log(
-                            f"[Sent]{folder_path}/[{download_index+len(sorted_NAS_List)}]{item}"
+                            f"[Sent]{folder_path}/[{youtube_download_list[video_id]}]{item}"
                         )
 
     def __is_json(self, myjson):
@@ -267,17 +260,17 @@ class QinServer:
             for line in lines:
                 if self.__is_json(line):
                     line_to_json = json.loads(line)
-                    youtube_index.update({line_to_json["id"]:line_to_json["playlist_count"]-line_to_json["playlist_index"]+1})
+                    youtube_index.update(
+                        {
+                            line_to_json["id"]: line_to_json["playlist_count"]
+                            - line_to_json["playlist_index"]
+                            + 1
+                        }
+                    )
         return youtube_index
 
 
 if __name__ == "__main__":
-    youtube_index = {}
-    youtube_index.update({"1":1})
-    youtube_index.update({"2":1})
-    youtube_index.update({"3":1})
-    youtube_index.pop("1")
-    youtube_index.pop("3")
     print("v1")
     qs = QinServer()
     qs._video_list_monitor_thread()
