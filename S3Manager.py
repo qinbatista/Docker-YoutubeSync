@@ -4,18 +4,14 @@ import uuid
 import os
 import json
 import platform
-
+import getpass
 
 class S3Manager:
     def __init__(self):
         if platform.system() == "Darwin":
-            self.__file_path = "/Users/qin/Desktop/logs.txt"
-            self.__fn_stdout = (
-                f"/Users/qin/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json"
-            )
-            self.__fn_tderr = (
-                f"/Users/qin/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json"
-            )
+            self.__file_path = f"/Users/{getpass.getuser()}/Desktop/logs.txt"
+            self.__fn_stdout = (f"/Users/{getpass.getuser()}/Desktop/_get_static_ip_stdout{uuid.uuid4()}.json")
+            self.__fn_tderr = (f"/Users/{getpass.getuser()}/Desktop/_get_static_ip_stderr{uuid.uuid4()}.json")
         else:
             self.__file_path = "/download/s3logs.txt"
             self.__fn_stdout = f"/download/_get_static_ip_stdout{uuid.uuid4()}.json"

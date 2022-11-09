@@ -14,7 +14,7 @@ from socket import *
 import platform
 import S3Manager
 import re
-
+import getpass
 
 class QinServer:
     def __init__(self):
@@ -23,8 +23,8 @@ class QinServer:
         os.system("cat  ~/.ssh/id_rsa.pub")
         # os.system('rsync -avz --progress -e "ssh -o stricthostkeychecking=no -p 10022" /download root@cq.qinyupeng.com:~/')
         if platform.system() == "Darwin":
-            self._root_folder = "/Users/qin/Desktop/download"
-            self.__file_path = "/Users/qin/Desktop/download/logs.txt"
+            self._root_folder = f"/Users/{getpass.getuser()}/Desktop/download"
+            self.__file_path = f"/Users/{getpass.getuser()}/Desktop/download/logs.txt"
         else:
             os.system(f"rm -rf /download/*")
             self._root_folder = "/download"
@@ -137,13 +137,13 @@ class QinServer:
         try:
             s.settimeout(5)
             s.connect((ip, port))
+            s.close()
             os.system('rsync -avz --progress -e "ssh -o stricthostkeychecking=no -p 10022" /download root@cq.qinyupeng.com:~/')
             return True
         except Exception as error:
             self.__log(f"[__isServerOpening]"+str(error))
-        finally:
-            s.close()
             return False
+
 
     def __log(self, result):
         if not os.path.exists(self.__file_path):
